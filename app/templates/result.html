@@ -17,14 +17,18 @@
         {% if result.arv %}${{ "{:,}".format(result.arv) }}{% else %}—{% endif %}
       </strong>
       <span class="hint">
-        {% if result.median_price_per_sqft %}
-          median ${{ result.median_price_per_sqft }}/sqft
-          × {{ result.subject_sqft }} sqft
+        {% if result.avg_price_per_sqft and result.subject.county_sqft %}
+          avg ${{ result.avg_price_per_sqft }}/sqft
+          × {{ result.subject.county_sqft }} sqft (county)
+        {% elif not result.subject.county_sqft %}
+          no ARV — subject sqft not found in county records
+        {% elif not result.comps_used %}
+          no ARV — no comps passed criteria
         {% endif %}
       </span>
     </div>
     <div class="metric">
-      <label>Rentcast AVM</label>
+      <label>Rentcast AVM (reference)</label>
       <strong>
         {% if result.rentcast_estimate %}${{ "{:,}".format(result.rentcast_estimate) }}{% else %}—{% endif %}
       </strong>
@@ -38,92 +42,102 @@
 </section>
 
 <section class="card">
+  <h2>Criteria</h2>
+  <ul class="criteria">
+    <li>Top <strong>{{ result.criteria.top_n_by_price }}</strong> comps by sale price</li>
+    <li>Same property type as subject</li>
+    <li>≤ <strong>{{ result.criteria.max_distance_mi }}</strong> mi from subject</li>
+    <li>Sold in last <strong>{{ result.criteria.max_days_old }}</strong> days</li>
+    <li>Sqft source: <strong>Cuyahoga County MyPlace only</strong> (Rentcast sqft is ignored)</li>
+  </ul>
+</section>
+
+<section class="card">
   <h2>Subject property</h2>
-  <table class="kv">
-    <tr><th>Rentcast</th><td>
-      {{ result.subject_bedrooms or "—" }} bd /
-      {{ result.subject_bathrooms or "—" }} ba ·
-      {{ result.subject_sqft or "—" }} sqft ·
-      built {{ result.subject_year_built or "—" }}
-    </td></tr>
-    <tr><th>Cuyahoga County</th><td>
-      {% if subject_county %}
-        <a href="{{ subject_county.myplace_url }}" target="_blank" rel="noopener">
-          parcel {{ subject_county.property_number }}
-        </a>
-        —
-        {{ subject_county.bedrooms or "—" }} bd /
-        {{ subject_county.bathrooms or "—" }} ba ·
-        {{ subject_county.living_area_sqft or "—" }} sqft ·
-        built {{ subject_county.year_built or "—" }} ·
-        owner <em>{{ subject_county.owner or "—" }}</em>
-      {% else %}
-        <span class="muted">not found in MyPlace (non-Cuyahoga or unmatched address)</span>
-      {% endif %}
-    </td></tr>
-  </table>
+  {% if result.subject.myplace_url %}
+    <p>
+      <a href="{{ result.subject.myplace_url }}" target="_blank" rel="noopener">
+        Cuyahoga parcel {{ result.subject.property_number }}
+      </a>
+      — owner <em>{{ result.subject.owner or "—" }}</em>
+    </p>
+    <table class="kv">
+      <tr><th>Living area (county)</th><td><strong>{{ result.subject.county_sqft or "—" }} sqft</strong></td></tr>
+      <tr><th>Bedrooms</th><td>{{ result.subject.bedrooms or "—" }}</td></tr>
+      <tr><th>Bathrooms</th><td>{{ result.subject.bathrooms or "—" }}</td></tr>
+      <tr><th>Year built</th><td>{{ result.subject.year_built or "—" }}</td></tr>
+      <tr><th>Rentcast sqft (ignored)</th><td class="muted">{{ result.subject.rentcast_sqft or "—" }}</td></tr>
+    </table>
+  {% else %}
+    <p class="warn-box">
+      Subject not found in Cuyahoga County MyPlace. Can't produce a county-based ARV.
+      (Property may be outside Cuyahoga County.)
+    </p>
+    <table class="kv">
+      <tr><th>Rentcast sqft</th><td>{{ result.subject.rentcast_sqft or "—" }}</td></tr>
+      <tr><th>Rentcast bd/ba</th><td>{{ result.subject.bedrooms or "—" }} / {{ result.subject.bathrooms or "—" }}</td></tr>
+    </table>
+  {% endif %}
 </section>
 
 <section class="card">
   <h2>Comparables used ({{ result.comps_used|length }})</h2>
+  {% if result.comps_used %}
   <table class="comps">
     <thead>
       <tr>
         <th>Address</th>
-        <th class="num">Price</th>
-        <th class="num">Sqft</th>
+        <th class="num">Sold price</th>
+        <th class="num">County sqft</th>
         <th class="num">$/sqft</th>
         <th class="num">Bd/Ba</th>
         <th class="num">Built</th>
         <th class="num">Dist (mi)</th>
-        <th class="num">Age (d)</th>
-        <th>Status</th>
-        <th>County check</th>
+        <th class="num">Sold (d ago)</th>
+        <th>County parcel</th>
       </tr>
     </thead>
     <tbody>
       {% for c in result.comps_used %}
-        {% set v = comp_verifications[loop.index0] %}
         <tr>
           <td>{{ c.address }}</td>
           <td class="num">${{ "{:,}".format(c.price) }}</td>
-          <td class="num">{{ c.sqft or "—" }}</td>
-          <td class="num">{{ c.price_per_sqft or "—" }}</td>
+          <td class="num">{{ c.county_sqft }}</td>
+          <td class="num">{{ c.price_per_sqft }}</td>
           <td class="num">{{ c.bedrooms or "—" }}/{{ c.bathrooms or "—" }}</td>
           <td class="num">{{ c.year_built or "—" }}</td>
           <td class="num">{{ "%.2f"|format(c.distance_mi) if c.distance_mi else "—" }}</td>
-          <td class="num">{{ c.days_old or "—" }}</td>
-          <td>{{ c.status or "—" }}</td>
+          <td class="num">{{ c.days_old }}</td>
           <td>
-            {% if v.found %}
-              <a href="{{ v.rec.myplace_url }}" target="_blank" rel="noopener">#{{ v.rec.property_number }}</a>
-              {% if v.sqft_match is true %}<span class="ok">✓sqft</span>
-              {% elif v.sqft_match is false %}<span class="warn">✗sqft ({{ v.rec.living_area_sqft }})</span>
-              {% endif %}
-              {% if v.beds_match is true %}<span class="ok">✓bd</span>
-              {% elif v.beds_match is false %}<span class="warn">✗bd ({{ v.rec.bedrooms }})</span>
-              {% endif %}
-            {% else %}
-              <span class="muted">not in MyPlace</span>
-            {% endif %}
+            {% if c.myplace_url %}
+              <a href="{{ c.myplace_url }}" target="_blank" rel="noopener">#{{ c.property_number }}</a>
+            {% else %}—{% endif %}
           </td>
         </tr>
       {% endfor %}
     </tbody>
   </table>
+  {% else %}
+    <p class="muted">No comps passed the criteria. See "Rejected" below.</p>
+  {% endif %}
 </section>
 
 {% if result.comps_dropped %}
 <section class="card muted-card">
-  <h2>Dropped / ineligible ({{ result.comps_dropped|length }})</h2>
+  <h2>Rejected ({{ result.comps_dropped|length }})</h2>
   <p class="hint">
-    Missing price or sqft, or trimmed as outliers (highest and lowest $/sqft when we had ≥5 comps).
+    Rentcast returned these but they failed at least one criterion.
   </p>
   <table class="comps">
     <thead>
       <tr>
-        <th>Address</th><th class="num">Price</th><th class="num">Sqft</th>
-        <th class="num">$/sqft</th><th>Reason</th>
+        <th>Address</th>
+        <th class="num">Price</th>
+        <th class="num">Dist</th>
+        <th class="num">Days</th>
+        <th>Status</th>
+        <th>Type</th>
+        <th>Why dropped</th>
       </tr>
     </thead>
     <tbody>
@@ -131,12 +145,11 @@
         <tr>
           <td>{{ c.address }}</td>
           <td class="num">{% if c.price %}${{ "{:,}".format(c.price) }}{% else %}—{% endif %}</td>
-          <td class="num">{{ c.sqft or "—" }}</td>
-          <td class="num">{{ c.price_per_sqft or "—" }}</td>
-          <td>
-            {% if not c.sqft or not c.price %}missing data
-            {% else %}outlier trim{% endif %}
-          </td>
+          <td class="num">{{ "%.2f"|format(c.distance_mi) if c.distance_mi else "—" }}</td>
+          <td class="num">{{ c.days_old if c.days_old is not none else "—" }}</td>
+          <td>{{ c.status or "—" }}</td>
+          <td>{{ c.property_type or "—" }}</td>
+          <td class="muted">{{ c.reason }}</td>
         </tr>
       {% endfor %}
     </tbody>

@@ -66,17 +66,46 @@ _STREET_TYPES = {
 }
 
 
+_DIRECTIONALS = {"n", "s", "e", "w", "nw", "ne", "sw", "se"}
+
+
 def _search_variants(address_line1: str) -> list[str]:
-    """Generate MyPlace-friendly search terms. MyPlace records may use a
-    different street-type abbreviation than Zillow/Rentcast (Rd vs DR, etc.),
-    so we fall back to the prefix without any trailing street-type token.
+    """Generate MyPlace-friendly search terms.
+
+    MyPlace records often diverge from Zillow/Rentcast in two ways:
+      - Street type suffix (Rd vs DR, etc.)
+      - Directional prefix may be dropped (MyPlace stores "8880 RIDGEWOOD DR",
+        Rentcast sends "8880 W Ridgewood Dr")
+
+    We try the most specific search first, then fall back to progressively
+    looser variants.
     """
     cleaned = address_line1.strip()
-    variants = [cleaned]
     tokens = cleaned.split()
-    if len(tokens) >= 3 and tokens[-1].rstrip(".").lower() in _STREET_TYPES:
-        variants.append(" ".join(tokens[:-1]))
-    return variants
+    variants: list[str] = [cleaned]
+
+    has_street_type = (
+        len(tokens) >= 3 and tokens[-1].rstrip(".").lower() in _STREET_TYPES
+    )
+    has_directional = (
+        len(tokens) >= 3 and tokens[1].rstrip(".").lower() in _DIRECTIONALS
+    )
+
+    if has_street_type:
+        variants.append(" ".join(tokens[:-1]))  # drop street type
+    if has_directional:
+        # drop the directional after the house number
+        variants.append(" ".join([tokens[0]] + tokens[2:]))
+        if has_street_type:
+            variants.append(" ".join([tokens[0]] + tokens[2:-1]))
+    # De-dupe while preserving order.
+    seen = set()
+    out = []
+    for v in variants:
+        if v not in seen:
+            seen.add(v)
+            out.append(v)
+    return out
 
 
 async def search_by_address(client: httpx.AsyncClient, address_line1: str) -> ParcelSearch | None:
