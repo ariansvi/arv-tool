@@ -1,0 +1,170 @@
+:root {
+  --bg: #0f1115;
+  --panel: #181b22;
+  --panel-2: #1f232c;
+  --border: #2a2f3a;
+  --text: #e7ebf2;
+  --muted: #8b93a3;
+  --accent: #7ad0ff;
+  --ok: #4ade80;
+  --warn: #f59e0b;
+  --bad: #f87171;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.brand {
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 18px;
+  letter-spacing: 0.2px;
+}
+
+.subtitle { color: var(--muted); font-size: 13px; }
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 28px 80px;
+}
+
+footer {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  padding: 24px;
+  border-top: 1px solid var(--border);
+}
+
+h1 { font-size: 24px; margin: 0 0 12px; font-weight: 600; }
+h2 { font-size: 16px; margin: 0 0 12px; font-weight: 600; }
+
+.lede { color: var(--muted); margin: 0 0 24px; max-width: 640px; }
+.note { color: var(--muted); font-size: 12px; margin-top: 16px; }
+
+.hero { padding-top: 24px; }
+
+.url-form {
+  display: flex;
+  gap: 8px;
+  max-width: 720px;
+}
+
+.url-form input[type=url] {
+  flex: 1;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.url-form input[type=url]:focus { border-color: var(--accent); }
+
+.url-form button {
+  background: var(--accent);
+  color: #0b1620;
+  border: 0;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.url-form button:hover { filter: brightness(1.08); }
+
+.error {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 8px;
+  color: var(--bad);
+  font-size: 13px;
+}
+
+.summary { margin-bottom: 24px; }
+.back { color: var(--accent); text-decoration: none; font-size: 13px; }
+.back:hover { text-decoration: underline; }
+.source { color: var(--muted); font-size: 12px; word-break: break-all; margin: 4px 0 16px; }
+.source a { color: var(--muted); }
+
+.headline {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.metric {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  min-width: 220px;
+}
+
+.metric.big { background: linear-gradient(135deg, #1a2430, #0f1115); border-color: var(--accent); }
+
+.metric label { display: block; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; }
+.metric strong { display: block; font-size: 28px; margin: 6px 0 4px; }
+.metric .hint { color: var(--muted); font-size: 12px; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.card.muted-card { background: var(--panel-2); }
+
+.kv { width: 100%; border-collapse: collapse; }
+.kv th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 12px 6px 0; vertical-align: top; width: 180px; }
+.kv td { padding: 6px 0; }
+
+.comps {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.comps th, .comps td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.comps th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
+.comps td.num, .comps th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.ok { color: var(--ok); margin-left: 6px; font-size: 12px; }
+.warn { color: var(--warn); margin-left: 6px; font-size: 12px; }
+.muted { color: var(--muted); }
+.hint { color: var(--muted); font-size: 12px; margin: 6px 0 10px; }
+
+a { color: var(--accent); }

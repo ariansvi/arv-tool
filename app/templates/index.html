@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>Calculate ARV from a Zillow link</h1>
+  <p class="lede">
+    Paste a Zillow property URL. We fetch comparable sales from Rentcast and
+    cross-check each comp against Cuyahoga County's MyPlace records.
+  </p>
+
+  <form method="post" action="/analyze" class="url-form">
+    <input
+      type="url"
+      name="zillow_url"
+      required
+      placeholder="https://www.zillow.com/homedetails/..."
+      value="{{ zillow_url or '' }}"
+      autocomplete="off"
+    >
+    <button type="submit">Analyze</button>
+  </form>
+
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <p class="note">
+    Cuyahoga County (Cleveland / Parma / etc.) is currently the only county
+    with automated verification. Out-of-county comps still show Rentcast data.
+  </p>
+</section>
+{% endblock %}

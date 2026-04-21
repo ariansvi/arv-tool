@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}ARV — {{ address }}{% endblock %}
+{% block content %}
+
+<section class="summary">
+  <a class="back" href="/">← New analysis</a>
+  <h1>{{ address }}</h1>
+  <p class="source">
+    Source URL:
+    <a href="{{ zillow_url }}" target="_blank" rel="noopener">{{ zillow_url }}</a>
+  </p>
+
+  <div class="headline">
+    <div class="metric big">
+      <label>Estimated ARV</label>
+      <strong>
+        {% if result.arv %}${{ "{:,}".format(result.arv) }}{% else %}—{% endif %}
+      </strong>
+      <span class="hint">
+        {% if result.median_price_per_sqft %}
+          median ${{ result.median_price_per_sqft }}/sqft
+          × {{ result.subject_sqft }} sqft
+        {% endif %}
+      </span>
+    </div>
+    <div class="metric">
+      <label>Rentcast AVM</label>
+      <strong>
+        {% if result.rentcast_estimate %}${{ "{:,}".format(result.rentcast_estimate) }}{% else %}—{% endif %}
+      </strong>
+      <span class="hint">
+        {% if result.rentcast_low and result.rentcast_high %}
+          range ${{ "{:,}".format(result.rentcast_low) }} – ${{ "{:,}".format(result.rentcast_high) }}
+        {% endif %}
+      </span>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Subject property</h2>
+  <table class="kv">
+    <tr><th>Rentcast</th><td>
+      {{ result.subject_bedrooms or "—" }} bd /
+      {{ result.subject_bathrooms or "—" }} ba ·
+      {{ result.subject_sqft or "—" }} sqft ·
+      built {{ result.subject_year_built or "—" }}
+    </td></tr>
+    <tr><th>Cuyahoga County</th><td>
+      {% if subject_county %}
+        <a href="{{ subject_county.myplace_url }}" target="_blank" rel="noopener">
+          parcel {{ subject_county.property_number }}
+        </a>
+        —
+        {{ subject_county.bedrooms or "—" }} bd /
+        {{ subject_county.bathrooms or "—" }} ba ·
+        {{ subject_county.living_area_sqft or "—" }} sqft ·
+        built {{ subject_county.year_built or "—" }} ·
+        owner <em>{{ subject_county.owner or "—" }}</em>
+      {% else %}
+        <span class="muted">not found in MyPlace (non-Cuyahoga or unmatched address)</span>
+      {% endif %}
+    </td></tr>
+  </table>
+</section>
+
+<section class="card">
+  <h2>Comparables used ({{ result.comps_used|length }})</h2>
+  <table class="comps">
+    <thead>
+      <tr>
+        <th>Address</th>
+        <th class="num">Price</th>
+        <th class="num">Sqft</th>
+        <th class="num">$/sqft</th>
+        <th class="num">Bd/Ba</th>
+        <th class="num">Built</th>
+        <th class="num">Dist (mi)</th>
+        <th class="num">Age (d)</th>
+        <th>Status</th>
+        <th>County check</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in result.comps_used %}
+        {% set v = comp_verifications[loop.index0] %}
+        <tr>
+          <td>{{ c.address }}</td>
+          <td class="num">${{ "{:,}".format(c.price) }}</td>
+          <td class="num">{{ c.sqft or "—" }}</td>
+          <td class="num">{{ c.price_per_sqft or "—" }}</td>
+          <td class="num">{{ c.bedrooms or "—" }}/{{ c.bathrooms or "—" }}</td>
+          <td class="num">{{ c.year_built or "—" }}</td>
+          <td class="num">{{ "%.2f"|format(c.distance_mi) if c.distance_mi else "—" }}</td>
+          <td class="num">{{ c.days_old or "—" }}</td>
+          <td>{{ c.status or "—" }}</td>
+          <td>
+            {% if v.found %}
+              <a href="{{ v.rec.myplace_url }}" target="_blank" rel="noopener">#{{ v.rec.property_number }}</a>
+              {% if v.sqft_match is true %}<span class="ok">✓sqft</span>
+              {% elif v.sqft_match is false %}<span class="warn">✗sqft ({{ v.rec.living_area_sqft }})</span>
+              {% endif %}
+              {% if v.beds_match is true %}<span class="ok">✓bd</span>
+              {% elif v.beds_match is false %}<span class="warn">✗bd ({{ v.rec.bedrooms }})</span>
+              {% endif %}
+            {% else %}
+              <span class="muted">not in MyPlace</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% if result.comps_dropped %}
+<section class="card muted-card">
+  <h2>Dropped / ineligible ({{ result.comps_dropped|length }})</h2>
+  <p class="hint">
+    Missing price or sqft, or trimmed as outliers (highest and lowest $/sqft when we had ≥5 comps).
+  </p>
+  <table class="comps">
+    <thead>
+      <tr>
+        <th>Address</th><th class="num">Price</th><th class="num">Sqft</th>
+        <th class="num">$/sqft</th><th>Reason</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in result.comps_dropped %}
+        <tr>
+          <td>{{ c.address }}</td>
+          <td class="num">{% if c.price %}${{ "{:,}".format(c.price) }}{% else %}—{% endif %}</td>
+          <td class="num">{{ c.sqft or "—" }}</td>
+          <td class="num">{{ c.price_per_sqft or "—" }}</td>
+          <td>
+            {% if not c.sqft or not c.price %}missing data
+            {% else %}outlier trim{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% endblock %}
